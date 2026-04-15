@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sales Prediction Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            margin: 50px auto;
+            width: 420px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 90%;
+            padding: 12px;
+            margin: 8px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #5a67d8;
+            transform: scale(1.05);
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        canvas {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>📊 Sales Prediction Dashboard</h2>
+
+    <form id="form">
+        <input type="number" name="Store" placeholder="Store ID" required>
+        <input type="number" name="DayOfWeek" placeholder="Day (1-7)" required>
+        <input type="number" name="Customers" placeholder="Customers" required>
+        <input type="number" name="Promo" placeholder="Promo (0/1)" required>
+
+        <button type="submit">Predict</button>
+    </form>
+
+    <div class="result-box" id="result"></div>
+
+    <canvas id="salesChart"></canvas>
+</div>
+
+<script>
+let chart;
+
+document.getElementById("form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    const day = parseInt(form.DayOfWeek.value);
+
+    const data = {
+        Store: parseInt(form.Store.value),
+        DayOfWeek: day,
+        Customers: parseInt(form.Customers.value),
+        Open: 1,
+        Promo: parseInt(form.Promo.value),
+        StateHoliday: 0,
+        SchoolHoliday: 0,
+        Year: 2015,
+        Month: 7,
+        Day: 15
+    };
+
+    const res = await fetch("/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+
+    document.getElementById("result").innerHTML =
+        `<h3>💰 Sales: ${result.predicted_sales}</h3>
+         <p>🧠 Insights:<br>${result.insights.join("<br>")}</p>`;
+
+    let weekdaySales = result.predicted_sales * 0.8;
+    let weekendSales = result.predicted_sales * 1.2;
+
+    if (day === 6 || day === 7) {
+        weekendSales = result.predicted_sales;
+        weekdaySales = result.predicted_sales * 0.7;
+    }
+
+    if (chart) {
+        chart.destroy();
+    }
+
+    const ctx = document.getElementById("salesChart").getContext("2d");
+
+    chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: ["Weekday", "Weekend"],
+            datasets: [{
+                label: "Sales Comparison",
+                data: [weekdaySales, weekendSales]
+            }]
+        }
+    });
+};
+</script>
+
+</body>
+</html>
